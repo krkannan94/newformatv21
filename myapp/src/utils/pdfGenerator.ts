@@ -1,6 +1,6 @@
 import { printToFileAsync } from 'expo-print';
 import { shareAsync } from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import { copyAsync, documentDirectory } from 'expo-file-system/build/legacy/FileSystem';
 import { EntryFormData, ImageData } from '../types';
 import { format } from 'date-fns';
 
@@ -136,8 +136,8 @@ export const generateReportPDF = async (
 
 export const savePDF = async (uri: string, filename: string): Promise<string> => {
   try {
-    const destinationUri = `${FileSystem.documentDirectory}${filename}`;
-    await FileSystem.copyAsync({
+    const destinationUri = `${documentDirectory}${filename}`;
+    await copyAsync({
       from: uri,
       to: destinationUri,
     });
