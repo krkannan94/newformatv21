@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppContextType, Draft, EntryFormData, Activity } from '../types';
-import { format } from 'date-fns';
+import { saveData, loadData, removeData, multiLoad } from '../utils/storage';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -24,39 +23,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
 
   useEffect(() => {
-    loadData();
+    loadInitialData();
   }, []);
 
-  const loadData = async () => {
+  const loadInitialData = async () => {
     try {
-      const [
-        savedSession,
-        savedDrafts,
-        savedReportsGenerated,
-        savedReportsShared,
-        savedPdfTimestamp,
-        savedDraftTimestamp,
-        savedFeedbackTimestamp,
-        savedActivities,
-      ] = await Promise.all([
-        AsyncStorage.getItem('currentSessionFormData'),
-        AsyncStorage.getItem('drafts'),
-        AsyncStorage.getItem('reportsGenerated'),
-        AsyncStorage.getItem('reportsShared'),
-        AsyncStorage.getItem('lastPdfGenerated'),
-        AsyncStorage.getItem('lastDraftModified'),
-        AsyncStorage.getItem('lastFeedbackReceived'),
-        AsyncStorage.getItem('recentActivities'),
+      const data = await multiLoad([
+        'currentSessionFormData',
+        'drafts',
+        'reportsGenerated',
+        'reportsShared',
+        'lastPdfGenerated',
+        'lastDraftModified',
+        'lastFeedbackReceived',
+        'recentActivities',
       ]);
 
-      if (savedSession) setFormDataState(JSON.parse(savedSession));
-      if (savedDrafts) setDrafts(JSON.parse(savedDrafts));
-      if (savedReportsGenerated) setReportsGenerated(parseInt(savedReportsGenerated));
-      if (savedReportsShared) setReportsShared(parseInt(savedReportsShared));
-      if (savedPdfTimestamp) setLastPdfGenerated(parseInt(savedPdfTimestamp));
-      if (savedDraftTimestamp) setLastDraftModified(parseInt(savedDraftTimestamp));
-      if (savedFeedbackTimestamp) setLastFeedbackReceived(parseInt(savedFeedbackTimestamp));
-      if (savedActivities) setRecentActivities(JSON.parse(savedActivities));
+      if (data.currentSessionFormData) setFormDataState(data.currentSessionFormData);
+      if (data.drafts) setDrafts(data.drafts);
+      if (data.reportsGenerated) setReportsGenerated(Number(data.reportsGenerated));
+      if (data.reportsShared) setReportsShared(Number(data.reportsShared));
+      if (data.lastPdfGenerated) setLastPdfGenerated(Number(data.lastPdfGenerated));
+      if (data.lastDraftModified) setLastDraftModified(Number(data.lastDraftModified));
+      if (data.lastFeedbackReceived) setLastFeedbackReceived(Number(data.lastFeedbackReceived));
+      if (data.recentActivities) setRecentActivities(data.recentActivities);
     } catch (error) {
       console.error('Failed to load data:', error);
     }
@@ -64,11 +54,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const setFormData = useCallback(async (data: EntryFormData) => {
     setFormDataState(data);
-    try {
-      await AsyncStorage.setItem('currentSessionFormData', JSON.stringify(data));
-    } catch (error) {
-      console.error('Failed to save form data:', error);
-    }
+    await saveData('currentSessionFormData', data);
   }, []);
 
   const saveDraft = useCallback(async (draftData: Omit<Draft, 'id' | 'createdAt' | 'updatedAt'>): Promise<Draft> => {
@@ -82,23 +68,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const updatedDrafts = [newDraft, ...drafts];
     setDrafts(updatedDrafts);
 
-    try {
-      await AsyncStorage.setItem('drafts', JSON.stringify(updatedDrafts));
+    const now = Date.now();
+    setLastDraftModified(now);
 
-      const now = Date.now();
-      setLastDraftModified(now);
-      await AsyncStorage.setItem('lastDraftModified', now.toString());
+    await saveData('drafts', updatedDrafts);
+    await saveData('lastDraftModified', now);
 
-      addActivity({
-        type: 'draft_saved',
-        title: 'Draft Saved',
-        description: 'Report draft saved successfully',
-        icon: 'Edit',
-        color: '#10b981'
-      });
-    } catch (error) {
-      console.error('Failed to save draft:', error);
-    }
+    addActivity({
+      type: 'draft_saved',
+      title: 'Draft Saved',
+      description: 'Report draft saved successfully',
+      icon: 'Edit',
+      color: '#10b981'
+    });
 
     return newDraft;
   }, [drafts]);
@@ -111,65 +93,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
     setDrafts(updatedDrafts);
 
-    try {
-      await AsyncStorage.setItem('drafts', JSON.stringify(updatedDrafts));
+    const now = Date.now();
+    setLastDraftModified(now);
 
-      const now = Date.now();
-      setLastDraftModified(now);
-      await AsyncStorage.setItem('lastDraftModified', now.toString());
-    } catch (error) {
-      console.error('Failed to update draft:', error);
-    }
+    await saveData('drafts', updatedDrafts);
+    await saveData('lastDraftModified', now);
   }, [drafts]);
 
   const deleteDraft = useCallback(async (id: string) => {
     const updatedDrafts = drafts.filter(draft => draft.id !== id);
     setDrafts(updatedDrafts);
 
-    try {
-      await AsyncStorage.setItem('drafts', JSON.stringify(updatedDrafts));
-    } catch (error) {
-      console.error('Failed to delete draft:', error);
-    }
+    await saveData('drafts', updatedDrafts);
   }, [drafts]);
 
   const clearSession = useCallback(async () => {
     setFormDataState(null);
-    try {
-      await AsyncStorage.removeItem('currentSessionFormData');
-    } catch (error) {
-      console.error('Failed to clear session:', error);
-    }
+    await removeData('currentSessionFormData');
   }, []);
 
   const incrementReportsGenerated = useCallback(async () => {
     const newCount = reportsGenerated + 1;
     setReportsGenerated(newCount);
 
-    try {
-      await AsyncStorage.setItem('reportsGenerated', newCount.toString());
+    const now = Date.now();
+    setLastPdfGenerated(now);
 
-      const now = Date.now();
-      setLastPdfGenerated(now);
-      await AsyncStorage.setItem('lastPdfGenerated', now.toString());
-    } catch (error) {
-      console.error('Failed to increment reports generated:', error);
-    }
+    await saveData('reportsGenerated', newCount);
+    await saveData('lastPdfGenerated', now);
   }, [reportsGenerated]);
 
   const incrementReportsShared = useCallback(async () => {
     const newCount = reportsShared + 1;
     setReportsShared(newCount);
 
-    try {
-      await AsyncStorage.setItem('reportsShared', newCount.toString());
+    const now = Date.now();
+    setLastPdfGenerated(now);
 
-      const now = Date.now();
-      setLastPdfGenerated(now);
-      await AsyncStorage.setItem('lastPdfGenerated', now.toString());
-    } catch (error) {
-      console.error('Failed to increment reports shared:', error);
-    }
+    await saveData('reportsShared', newCount);
+    await saveData('lastPdfGenerated', now);
   }, [reportsShared]);
 
   const addActivity = useCallback((activity: Omit<Activity, 'id' | 'timestamp'>) => {
@@ -182,7 +144,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const updatedActivities = [newActivity, ...recentActivities].slice(0, 3);
     setRecentActivities(updatedActivities);
 
-    AsyncStorage.setItem('recentActivities', JSON.stringify(updatedActivities)).catch(error => {
+    saveData('recentActivities', updatedActivities).catch(error => {
       console.error('Failed to save activities:', error);
     });
   }, [recentActivities]);
