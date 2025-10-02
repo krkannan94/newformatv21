@@ -1,13 +1,14 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../types';
 
-import SplashScreen from '../screens/SplashScreen';
-import EntryScreen from '../screens/EntryScreen';
-import DashboardScreen from '../screens/DashboardScreen';
-import GenerateReportScreen from '../screens/GenerateReportScreen';
-import SavedDraftsScreen from '../screens/SavedDraftsScreen';
+import HomeScreen from '../screens/HomeScreen';
+import ReportScreen from '../screens/ReportScreen';
+
+type RootStackParamList = {
+  Home: undefined;
+  Report: undefined;
+};
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -15,16 +16,28 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Splash"
+        initialRouteName="Home"
         screenOptions={{
-          headerShown: false,
+          headerShown: true,
+          headerStyle: {
+            backgroundColor: '#007AFF',
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+          },
         }}
       >
-        <Stack.Screen name="Splash" component={SplashScreen} />
-        <Stack.Screen name="Entry" component={EntryScreen} />
-        <Stack.Screen name="Dashboard" component={DashboardScreen} />
-        <Stack.Screen name="GenerateReport" component={GenerateReportScreen} />
-        <Stack.Screen name="SavedDrafts" component={SavedDraftsScreen} />
+        <Stack.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{ title: 'CBRE Home' }}
+        />
+        <Stack.Screen
+          name="Report"
+          component={ReportScreen}
+          options={{ title: 'Report Generator' }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
