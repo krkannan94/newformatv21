@@ -1,10 +1,30 @@
 import { printToFileAsync } from 'expo-print';
 import { shareAsync } from 'expo-sharing';
-import { Paths, File } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system';
 import { EntryFormData, ImageData } from '../types';
 import { format } from 'date-fns';
 
-export const generatePDF = async (
+export const generatePDF = async (html: string): Promise<string> => {
+  try {
+    const { uri } = await printToFileAsync({
+      html,
+      base64: false,
+    });
+
+    await shareAsync(uri, {
+      mimeType: 'application/pdf',
+      dialogTitle: 'Share PDF',
+      UTI: 'com.adobe.pdf',
+    });
+
+    return uri;
+  } catch (error) {
+    console.error('PDF generation or sharing failed:', error);
+    throw new Error('Failed to generate or share PDF');
+  }
+};
+
+export const generateReportPDF = async (
   formData: EntryFormData,
   allImages: ImageData[]
 ): Promise<string> => {
@@ -111,36 +131,28 @@ export const generatePDF = async (
     </html>
   `;
 
-  try {
-    const { uri } = await printToFileAsync({
-      html,
-      base64: false,
-    });
-
-    return uri;
-  } catch (error) {
-    console.error('PDF generation failed:', error);
-    throw new Error('Failed to generate PDF');
-  }
+  return generatePDF(html);
 };
 
-export const downloadPDF = async (uri: string, filename: string) => {
+export const savePDF = async (uri: string, filename: string): Promise<string> => {
   try {
-    const file = new File(Paths.document, filename);
-    const sourceFile = new File(uri);
-    await sourceFile.copy(file);
-    return file.uri;
+    const destinationUri = `${FileSystem.documentDirectory}${filename}`;
+    await FileSystem.copyAsync({
+      from: uri,
+      to: destinationUri,
+    });
+    return destinationUri;
   } catch (error) {
-    console.error('PDF download failed:', error);
+    console.error('PDF save failed:', error);
     throw error;
   }
 };
 
-export const sharePDF = async (uri: string) => {
+export const sharePDF = async (uri: string, title: string = 'Share PDF'): Promise<void> => {
   try {
     await shareAsync(uri, {
       mimeType: 'application/pdf',
-      dialogTitle: 'Share CBRE Report',
+      dialogTitle: title,
       UTI: 'com.adobe.pdf',
     });
   } catch (error) {
