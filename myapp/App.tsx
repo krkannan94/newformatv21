@@ -1,4 +1,5 @@
 import 'react-native-gesture-handler';
+import './global.css';
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { AppProvider } from './src/context/AppContext';
