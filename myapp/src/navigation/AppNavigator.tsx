@@ -1,14 +1,14 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../types';
 
-import HomeScreen from '../screens/HomeScreen';
-import ReportScreen from '../screens/ReportScreen';
-
-type RootStackParamList = {
-  Home: undefined;
-  Report: undefined;
-};
+import SplashScreen from '../screens/SplashScreen';
+import EntryScreen from '../screens/EntryScreen';
+import DashboardScreen from '../screens/DashboardScreen';
+import GenerateReportScreen from '../screens/GenerateReportScreen';
+import SavedDraftsScreen from '../screens/SavedDraftsScreen';
+import PreviewScreen from '../screens/PreviewScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -16,9 +16,9 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Home"
+        initialRouteName="Splash"
         screenOptions={{
-          headerShown: true,
+          headerShown: false,
           headerStyle: {
             backgroundColor: '#007AFF',
           },
@@ -29,14 +29,34 @@ export default function AppNavigator() {
         }}
       >
         <Stack.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{ title: 'CBRE Home' }}
+          name="Splash"
+          component={SplashScreen}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="Report"
-          component={ReportScreen}
-          options={{ title: 'Report Generator' }}
+          name="Entry"
+          component={EntryScreen}
+          options={{ title: 'Entry Form', headerShown: true }}
+        />
+        <Stack.Screen
+          name="Dashboard"
+          component={DashboardScreen}
+          options={{ title: 'Dashboard', headerShown: true }}
+        />
+        <Stack.Screen
+          name="GenerateReport"
+          component={GenerateReportScreen}
+          options={{ title: 'Generate Report', headerShown: true }}
+        />
+        <Stack.Screen
+          name="SavedDrafts"
+          component={SavedDraftsScreen}
+          options={{ title: 'Saved Drafts', headerShown: true }}
+        />
+        <Stack.Screen
+          name="Preview"
+          component={PreviewScreen}
+          options={{ title: 'Preview', headerShown: true }}
         />
       </Stack.Navigator>
     </NavigationContainer>
